@@ -314,7 +314,12 @@
         function startAnimation() {
           [sequenceCanvas, blurredCanvas, effectsCanvas].forEach(setupCanvas);
 
-          blurredCanvas.style.filter = "blur(2px)";
+          // CHANGED: Set blur amount based on device width
+          let blurAmount = "2px"; // Default for desktop and tablet
+          if (window.innerWidth < 768) {
+            blurAmount = "0.5px"; // Set a different blur for mobile
+          }
+          blurredCanvas.style.filter = `blur(${blurAmount})`;
 
           const masterTimeline = gsap.timeline({
             scrollTrigger: {
