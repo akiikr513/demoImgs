@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Diacore - A Journey of Wonder</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://css2?family=Cormorant+Garamond:wght@300;400;500;600;700&family=Inter:wght@300;400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Cormorant Garamond", serif;
+        background-color: #000;
+        color: #fff;
+        overflow-x: hidden;
+        /* Hide the default cursor on devices that support hover */
+        cursor: none;
+      }
+      /* The main container that will be pinned */
+      #sequence-container {
+        height: 100vh;
+        width: 100vw;
+        position: relative;
+        overflow: hidden;
+      }
+      /* All canvases are stacked on top of each other */
+      .sequence-canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+      }
+      /* The bottom canvas is the sharp, un-blurred image */
+      #image-sequence-canvas {
+        z-index: 1;
+      }
+      /* The middle canvas is the blurred version */
+      #blurred-canvas {
+        z-index: 2;
+        /* The blur is now applied via JavaScript for responsiveness */
+      }
+      /* The top canvas is for sparkles and the cursor shape */
+      #effects-canvas {
+        z-index: 3;
+        pointer-events: none;
+      }
+      /* A general class for all overlay elements (text, menus) */
+      .scroll-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        z-index: 10;
+        pointer-events: none; /* Allows scrolling through the overlay */
+        opacity: 0; /* Initially hidden */
+      }
+      /* Styling for the main text */
+      .scroll-text {
+        font-size: 4rem;
+        font-weight: 300;
+        line-height: 1.2;
+        max-width: 800px;
+        text-shadow: 0 0 15px rgba(0, 0, 0, 0.7);
+      }
+      /* Top Navigation Bar */
+      #top-nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        z-index: 20;
+        padding: 1.5rem 2.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: linear-gradient(to bottom, rgba(0, 0, 0, 0.5), transparent);
+        pointer-events: all;
+      }
+      #top-nav a {
+        color: #fff;
+        text-decoration: none;
+        font-family: "Inter", sans-serif;
+        font-weight: 300;
+        font-size: 0.9rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        transition: color 0.3s;
+      }
+      #top-nav a:hover {
+        color: #ccc;
+      }
+      .logo-text {
+        font-weight: 500;
+        font-size: 1.2rem;
+      }
+      /* Footer Menu */
+      #footer-menu {
+        justify-content: flex-end; /* Aligns content to the bottom */
+        padding-bottom: 5vh;
+      }
+      #footer-menu .links {
+        display: flex;
+        gap: 2rem;
+        pointer-events: all;
+      }
+      #footer-menu a {
+        color: #fff;
+        text-decoration: none;
+        font-family: "Inter", sans-serif;
+        font-weight: 400;
+      }
+      /* The final logo */
+      .diacore-logo {
+        width: 250px;
+        height: auto;
+      }
+      /* Loading indicator */
+      #loader {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #000;
+        z-index: 100;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 1.5rem;
+        transition: opacity 0.5s ease-out;
+      }
+
+      /* Responsive adjustments for text and navigation */
+      @media (max-width: 1024px) {
+        .scroll-text {
+          font-size: 3rem;
+          max-width: 600px;
+        }
+      }
+
+      @media (max-width: 768px) {
+        .scroll-text {
+          font-size: 2.2rem;
+          padding: 0 1rem;
+        }
+        #top-nav {
+          padding: 1rem 1.5rem;
+        }
+        .logo-text {
+          font-size: 1rem;
+        }
+        #top-nav a {
+          font-size: 0.8rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="loader">Loading Journey... 0%</div>
+
+    <!-- Top Navigation -->
+    <nav id="top-nav">
+      <a href="#" class="logo-text">Diacore</a>
+      <div>
+        <a href="#" class="mx-4">Our Story</a>
+        <a href="#">Contact</a>
+      </div>
+    </nav>
+
+    <!-- The main container that controls the scroll animation -->
+    <main id="sequence-container">
+      <!-- Canvas for the sharp background image -->
+      <canvas id="image-sequence-canvas" class="sequence-canvas"></canvas>
+      <!-- Canvas for the blurred overlay that gets "erased" -->
+      <canvas id="blurred-canvas" class="sequence-canvas"></canvas>
+      <!-- Canvas for the diamond cursor and sparkles -->
+      <canvas id="effects-canvas" class="sequence-canvas"></canvas>
+
+      <!-- All text and UI elements are now overlays -->
+      <div id="text-1" class="scroll-overlay">
+        <h1 class="scroll-text">For centuries, the search has been on</h1>
+      </div>
+      <div id="text-2" class="scroll-overlay">
+        <h2 class="scroll-text">To unearth dreams</h2>
+      </div>
+      <div id="text-3" class="scroll-overlay">
+        <h2 class="scroll-text">To create works of wonder</h2>
+      </div>
+      <div id="footer-menu" class="scroll-overlay">
+        <div class="links">
+          <a href="#">Legacy</a>
+          <a href="#">Craftsmanship</a>
+          <a href="#">Responsibility</a>
+        </div>
+      </div>
+      <div id="final-logo" class="scroll-overlay">
+        <img
+          src="https://placehold.co/400x200/000000/FFFFFF?text=Diacore"
+          alt="Diacore Logo"
+          onerror="this.onerror=null;this.src='https://placehold.co/400x200/000/FFF?text=Diacore+Logo';"
+        />
+      </div>
+    </main>
+
+    <!-- GSAP and ScrollTrigger Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        gsap.registerPlugin(ScrollTrigger);
+
+        // --- 1. SETUP ---
+        const sequenceCanvas = document.getElementById("image-sequence-canvas");
+        const sequenceContext = sequenceCanvas.getContext("2d");
+        const blurredCanvas = document.getElementById("blurred-canvas");
+        const blurredContext = blurredCanvas.getContext("2d");
+        const effectsCanvas = document.getElementById("effects-canvas");
+        const effectsContext = effectsCanvas.getContext("2d");
+        const loader = document.getElementById("loader");
+
+        const setupCanvas = (canvas) => {
+          canvas.width = window.innerWidth;
+          canvas.height = window.innerHeight;
+        };
+        [sequenceCanvas, blurredCanvas, effectsCanvas].forEach(setupCanvas);
+
+        // --- 2. RESPONSIVE IMAGE SEQUENCE SETUP ---
+        const frameCount = 100;
+
+        // ====================================================================================
+        // ====> IMPORTANT: REPLACE THE PLACEHOLDER URLs IN THESE ARRAYS WITH YOUR REAL IMAGES <====
+        // ====================================================================================
+
+        // --- DESKTOP IMAGES ---
+        // Add your 100 desktop image paths here.
+        // Example for local files: ['frame_001.png', 'frame_002.png', ...]
+        const desktopImageUrls = Array.from({ length: frameCount }, (_, i) => {
+          const frameNumber = (i + 1).toString().padStart(3, "0");
+          return `frame_${frameNumber}.png`;
+        });
+
+        // --- TABLET IMAGES ---
+        // Add your 100 tablet image paths here.
+        // Example for local files: ['tablet_frame_001.png', 'tablet_frame_002.png', ...]
+        const tabletImageUrls = Array.from({ length: frameCount }, (_, i) => {
+          const frameNumber = (i + 1).toString().padStart(3, "0");
+          return `frame_${frameNumber}.png`;
+        });
+
+        // --- MOBILE IMAGES ---
+        // Add your 100 mobile image paths here.
+        // Example for local files: ['mobile_frame_001.png', 'mobile_frame_002.png', ...]
+        const mobileImageUrls = Array.from({ length: frameCount }, (_, i) => {
+          const frameNumber = (i + 1).toString().padStart(3, "0");
+          return `mob_frame_${frameNumber}.png`;
+        });
+
+        // Function to get the correct image set based on screen width
+        const getImageSet = () => {
+          if (window.innerWidth < 768) {
+            return mobileImageUrls;
+          } else if (window.innerWidth < 1024) {
+            return tabletImageUrls;
+          } else {
+            return desktopImageUrls;
+          }
+        };
+
+        const imageUrls = getImageSet();
+        const images = [];
+        const imageSequence = { frame: 0 };
+
+        // --- 3. IMAGE PRELOADING ---
+        let imagesLoaded = 0;
+        imageUrls.forEach((url) => {
+          const img = new Image();
+          img.src = url;
+          img.onload = () => {
+            imagesLoaded++;
+            const percent = Math.round((imagesLoaded / frameCount) * 100);
+            loader.textContent = `Loading Journey... ${percent}%`;
+            if (imagesLoaded === frameCount) {
+              gsap.to(loader, {
+                opacity: 0,
+                onComplete: () => (loader.style.display = "none"),
+              });
+              startAnimation();
+            }
+          };
+          img.onerror = () => {
+            console.error(`Failed to load image: ${url}`);
+            imagesLoaded++;
+            if (imagesLoaded === frameCount) {
+              gsap.to(loader, {
+                opacity: 0,
+                onComplete: () => (loader.style.display = "none"),
+              });
+              startAnimation();
+            }
+          };
+          images.push(img);
+        });
+
+        // --- 4. MAIN ANIMATION LOGIC ---
+        function startAnimation() {
+          [sequenceCanvas, blurredCanvas, effectsCanvas].forEach(setupCanvas);
+
+          blurredCanvas.style.filter = "blur(2px)";
+
+          const masterTimeline = gsap.timeline({
+            scrollTrigger: {
+              trigger: "#sequence-container",
+              start: "top top",
+              end: `+=${frameCount * 200}`,
+              scrub: 1.5,
+              pin: true,
+            },
+          });
+
+          masterTimeline.to(
+            imageSequence,
+            {
+              frame: frameCount - 1,
+              snap: "frame",
+              ease: "none",
+            },
+            0
+          );
+
+          masterTimeline
+            .to("#text-1", { opacity: 1 }, "5%")
+            .to("#text-1", { opacity: 0 }, "15%")
+            .to("#text-2", { opacity: 1 }, "25%")
+            .to("#text-2", { opacity: 0 }, "35%")
+            .to("#text-3", { opacity: 1 }, "45%")
+            .to("#text-3", { opacity: 0 }, "55%")
+            .to("#footer-menu", { opacity: 1 }, "65%")
+            .to("#footer-menu", { opacity: 0 }, "75%")
+            .to("#final-logo", { opacity: 1 }, "85%");
+
+          animateEffects();
+        }
+
+        // --- 5. MOUSE & TOUCH INTERACTIVITY ---
+        let parallax = { x: 0, y: 0 };
+        let mousePos = { x: -100, y: -100 };
+        let lastMousePos = { x: -100, y: -100 };
+        let unblurParticles = [];
+        let sparkleParticles = [];
+
+        const updatePositions = (e) => {
+          const event = e.touches ? e.touches[0] : e;
+          mousePos = { x: event.clientX, y: event.clientY };
+        };
+
+        window.addEventListener("mousemove", updatePositions);
+        window.addEventListener("touchmove", updatePositions);
+
+        // --- 6. CONTINUOUS RENDER LOOP ---
+        function animateEffects() {
+          const currentFrame = Math.round(imageSequence.frame);
+          const img = images[currentFrame];
+
+          if (!img || !img.complete || img.naturalHeight === 0) {
+            requestAnimationFrame(animateEffects);
+            return;
+          }
+
+          const speed = Math.hypot(
+            mousePos.x - lastMousePos.x,
+            mousePos.y - lastMousePos.y
+          );
+          lastMousePos = { ...mousePos };
+
+          const newRadius = 20 + speed * 1.5;
+          unblurParticles.push({
+            x: mousePos.x,
+            y: mousePos.y,
+            radius: Math.min(newRadius, 80),
+          });
+
+          if (speed > 1) {
+            for (let i = 0; i < 2; i++) {
+              sparkleParticles.push({
+                x: mousePos.x,
+                y: mousePos.y,
+                size: Math.random() * 4 + 1,
+                opacity: 1,
+                vx: (Math.random() - 0.5) * 2,
+                vy: (Math.random() - 0.5) * 2,
+              });
+            }
+          }
+
+          const parallaxX = mousePos.x / window.innerWidth - 0.5;
+          const parallaxY = mousePos.y / window.innerHeight - 0.5;
+          gsap.to(parallax, {
+            duration: 0.8,
+            x: -parallaxX * 50,
+            y: -parallaxY * 50,
+            ease: "power2.out",
+          });
+
+          const { drawX, drawY, drawWidth, drawHeight } = getDrawDimensions(
+            img,
+            sequenceCanvas
+          );
+
+          sequenceContext.clearRect(
+            0,
+            0,
+            sequenceCanvas.width,
+            sequenceCanvas.height
+          );
+          sequenceContext.drawImage(
+            img,
+            drawX + parallax.x,
+            drawY + parallax.y,
+            drawWidth,
+            drawHeight
+          );
+
+          blurredContext.clearRect(
+            0,
+            0,
+            blurredCanvas.width,
+            blurredCanvas.height
+          );
+          blurredContext.drawImage(
+            img,
+            drawX + parallax.x,
+            drawY + parallax.y,
+            drawWidth,
+            drawHeight
+          );
+
+          blurredContext.save();
+          blurredContext.globalCompositeOperation = "source-over";
+          blurredContext.globalAlpha = 0.06;
+          if (sequenceCanvas.width > 0 && sequenceCanvas.height > 0) {
+            blurredContext.drawImage(sequenceCanvas, 0, 0);
+          }
+          blurredContext.restore();
+
+          blurredContext.save();
+          blurredContext.globalCompositeOperation = "destination-out";
+          for (let i = 0; i < unblurParticles.length; i++) {
+            const p = unblurParticles[i];
+            blurredContext.beginPath();
+            blurredContext.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+            blurredContext.fillStyle = `rgba(0, 0, 0, 1)`;
+            blurredContext.fill();
+            p.radius -= 0.8;
+            if (p.radius <= 0) {
+              unblurParticles.splice(i, 1);
+              i--;
+            }
+          }
+          blurredContext.restore();
+
+          effectsContext.clearRect(
+            0,
+            0,
+            effectsCanvas.width,
+            effectsCanvas.height
+          );
+
+          if (!("ontouchstart" in window)) {
+            effectsContext.strokeStyle = "rgba(255, 255, 255, 0.8)";
+            effectsContext.lineWidth = 1.5;
+            effectsContext.beginPath();
+            effectsContext.arc(mousePos.x, mousePos.y, 20, 0, Math.PI * 2);
+            effectsContext.stroke();
+          }
+
+          for (let i = 0; i < sparkleParticles.length; i++) {
+            const p = sparkleParticles[i];
+            effectsContext.beginPath();
+            effectsContext.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            effectsContext.fillStyle = `rgba(255, 255, 255, ${p.opacity})`;
+            effectsContext.fill();
+            p.x += p.vx;
+            p.y += p.vy;
+            p.opacity -= 0.04;
+            if (p.opacity <= 0) {
+              sparkleParticles.splice(i, 1);
+              i--;
+            }
+          }
+
+          requestAnimationFrame(animateEffects);
+        }
+
+        // --- 7. UTILITY FUNCTIONS ---
+        function getDrawDimensions(img, canvas) {
+          const scaleFactor = 1.3;
+          const canvasAspect = canvas.width / canvas.height;
+          const imgAspect = img.width / img.height;
+          let drawWidth, drawHeight, drawX, drawY;
+          if (imgAspect > canvasAspect) {
+            drawHeight = canvas.height * scaleFactor;
+            drawWidth = drawHeight * imgAspect;
+          } else {
+            drawWidth = canvas.width * scaleFactor;
+            drawHeight = drawWidth / imgAspect;
+          }
+          drawX = (canvas.width - drawWidth) / 2;
+          drawY = (canvas.height - drawHeight) / 2;
+          return { drawX, drawY, drawWidth, drawHeight };
+        }
+
+        window.addEventListener("resize", () => {
+          [sequenceCanvas, blurredCanvas, effectsCanvas].forEach(setupCanvas);
+        });
+      });
+    </script>
+  </body>
+</html>
